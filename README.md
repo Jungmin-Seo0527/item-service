@@ -997,8 +997,8 @@ public class BasicItemController {
 > **주의**  
 > `@ModelAttribute`의 이름을 생략하면 모델에 저장될 때 클래스명을 사용한다. 이때 **클래스의 첫글자만 소문자로 변경**해서 등록한다.    
 > 예) `@ModelAttribute`클래스명 -> 모델에 자동 추가되는 이름  
->            * `Item` -> `item`    
->            * `HelloWorld` -> `helloWorld`
+>                 * `Item` -> `item`    
+>                 * `HelloWorld` -> `helloWorld`
 
 #### ModelAttribute - addItemV4 (ModelAttribute 전체 생략)
 
@@ -1047,8 +1047,6 @@ public class BasicController {
  .container {
  max-width: 560px;
  }
-    
-    
     </style>
 </head>
 <body>
@@ -1129,5 +1127,51 @@ public class BasicItemController {
 > HTML Form 전송은 PUT, PATCH를 지원하지 않는다. GET, POST만 사용할 수 있다.    
 > PUT, PATCH는 HTTP API 전송시에 사용  
 > 스프링에서 HTTP POST로 Form 요청할 때 히든 필드를 통해서 PUT, PATCH 매핑을 사용하는 방법이 있지만, HTTP 요청상 POST 요청이다.
+
+### 7-10. PRG Post/Redirect/Get
+
+사실 지금까지 진행된 상품 등록 처리 컨트롤러는 심각한 문제가 있다. (`addItemV1 ~ addItemV4`)    
+상품 등록을 완료하고 웹 브라우저의 새로고침 버튼을 클릭해보자.   
+상품이 계속해서 중복 등록되는 것을 확인할 수 있다.
+
+* 전체 흐름
+  ![](https://i.ibb.co/5jN1wPs/bandicam-2021-06-12-19-37-08-783.jpg)
+
+#### POST 등록 후 새로 고침
+
+![](https://i.ibb.co/510Wpds/bandicam-2021-06-12-19-37-58-769.jpg)
+
+웹 브라우저의 새로 고침은 마지막에 서버에 전송한 데이터를 다시 전송한다.   
+상품 등록 폼에서 데이터를 입력하고 저장을 선택하면 `POST /add` + 상품 데이터를 서버로 전송한다.    
+이 상태에서 새로 고침을 또 선택하면 마지막에 전송한 `POST/add` + 상품 데이터를 서버로 다시 전송하게 된다.    
+그래서 내용은 같고, ID만 다른 상품 데이터가 계속 쌓이게 된다.
+
+#### POST, Redirect GET
+
+![](https://i.ibb.co/g96CFKn/bandicam-2021-06-12-19-40-02-307.jpg)
+
+웹 브라우저의 새로 고침은 마지막에 서버에 전송한 데이터를 다시 전송한다.   
+새로 고침 문제를 해결하려면 상품 저장 후에 뷰 템플릿으로 이동하는 것이 아니라, 상품 상세 화면으로 리다이렉트를 호출해주면 된다.   
+웹 브라우저는 리다이렉트의 영향으로 상품 저장 후에 실제 상품 상세 화면으로 다시 이동한다. 따라서 마지막에 호출한 내용이 상품 상세 화면인 `GET/items/{id}`가 되는 것이다.    
+이후 새로고침을 해도 상품 상세 화면으로 이동하게 되므로 새로 고침 문제를 해결할 수 있다.
+
+#### BasicItemController에 추가
+
+```java
+public class BasicItemController {
+    @PostMapping("/add")
+    public String addItemV5(Item item) {
+        itemRepository.save(item);
+
+        return "redirect:/basic/items/" + item.getId();
+    }
+}
+```
+
+상품 등록 처리 이후에 뷰 템플릿이 아니라 상품 상세 화면으로 리다이렉트 하도록 코드를 작성해보자.   
+이런 문제 해결 방식을 `PRG Post/Redirect/Get`라 한다.
+
+> 주의
+> `"redirect:/basic/items/" + item.getId()` redirect에서 `+item.getId()`처럼 URL에 변수를 더해서 사용하는 것은 URL 인코딩이 안되기 때문에 위험하다. 다음에 설명하는 `RedirectAttributes`를 사용하자.
 
 ## Note
