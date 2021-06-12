@@ -105,4 +105,157 @@ test {
 > React, Vue.js 같은 웹 클라이언트 기술을 사용하고, 웹 프론트엔드 개발자가 별도로 있으면, 웹 프론트엔드 개발자가 웹 퍼블리셔 역할까지 포함해서 하는 경오도 있다.   
 > 웹 클라이언트 기술을 사용하면, 웹 프론트엔드 개발자가 HTML을 동적으로 만드는 역할과 웹 화면의 흐름을 담당한다. 이 경우 백엔드 개발자는 HTML 뷰 템플릿을 직접 만지는 대신에, HTTP API를 통해 웹 클라이언트가 필요로 하는 데이터와 기능을 제공하면 된다.
 
+### 7-3. 상품 도메인 개발
+
+#### Item - 상품 객체
+
+* `src/main/java/hello/itemservice/domain/item/Item.java`
+
+```java
+package hello.itemservice.domain.item;
+
+import lombok.Data;
+
+@Data
+public class Item {
+
+    private Long id;
+    private String itemName;
+    private Integer price;
+    private Integer quantity;
+
+    public Item() {
+    }
+
+    public Item(String itemName, Integer price, Integer quantity) {
+        this.itemName = itemName;
+        this.price = price;
+        this.quantity = quantity;
+    }
+}
+
+```
+
+#### ItemRepository - 상품 저장소
+
+* `src/main/java/hello/itemservice/domain/item/ItemRepository.java`
+
+```java
+package hello.itemservice.domain.item;
+
+import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Repository
+public class ItemRepository {
+
+    private static final Map<Long, Item> store = new HashMap<>();
+    private static long sequence = 0L;
+
+    public Item save(Item item) {
+        item.setId(++sequence);
+        store.put(item.getId(), item);
+        return item;
+    }
+
+    public Item findById(Long id) {
+        return store.get(id);
+    }
+
+    public List<Item> findAll() {
+        return new ArrayList<>(store.values());
+    }
+
+    public void update(Long itemId, Item updateParam) {
+        Item findItem = findById(itemId);
+        findItem.setItemName(updateParam.getItemName());
+        findItem.setPrice(updateParam.getPrice());
+        findItem.setQuantity(updateParam.getQuantity());
+    }
+
+    public void clearStore() {
+        store.clear();
+    }
+}
+
+```
+
+#### ItemRepositoryTest - 상품 저장소 테스트
+
+* `src/test/java/hello/itemservice/domain/item/ItemRepositoryTest.java`
+
+```java
+package hello.itemservice.domain.item;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.*;
+
+class ItemRepositoryTest {
+
+    ItemRepository itemRepository = new ItemRepository();
+
+    @AfterEach
+    void afterEach() {
+        itemRepository.clearStore();
+    }
+
+    @Test
+    void save() {
+        // given
+        Item item = new Item("itemA", 10000, 10);
+
+        // when
+        Item savedItem = itemRepository.save(item);
+
+        // then
+        Item findItem = itemRepository.findById(item.getId());
+        assertThat(findItem).isEqualTo(savedItem);
+    }
+
+    @Test
+    void findAll() {
+        // given
+        Item item1 = new Item("item1", 10000, 10);
+        Item item2 = new Item("item2", 10000, 20);
+
+        itemRepository.save(item1);
+        itemRepository.save(item2);
+
+        // when
+        List<Item> result = itemRepository.findAll();
+
+        // then
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result).contains(item1, item2);
+    }
+
+    @Test
+    void updateItem() {
+        // given
+        Item item = new Item("itemA", 10000, 10);
+
+        Item savedItem = itemRepository.save(item);
+        Long itemId = savedItem.getId();
+
+        // when
+        Item updateParam = new Item("item2", 20000, 30);
+        itemRepository.update(itemId, updateParam);
+
+        // then
+        Item findItem = itemRepository.findById(itemId);
+        assertThat(findItem.getItemName()).isEqualTo(updateParam.getItemName());
+        assertThat(findItem.getPrice()).isEqualTo(updateParam.getPrice());
+        assertThat(findItem.getQuantity()).isEqualTo(updateParam.getQuantity());
+    }
+}
+```
+
 ## Note
