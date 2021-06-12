@@ -997,8 +997,8 @@ public class BasicItemController {
 > **주의**  
 > `@ModelAttribute`의 이름을 생략하면 모델에 저장될 때 클래스명을 사용한다. 이때 **클래스의 첫글자만 소문자로 변경**해서 등록한다.    
 > 예) `@ModelAttribute`클래스명 -> 모델에 자동 추가되는 이름  
->        * `Item` -> `item`    
->        * `HelloWorld` -> `helloWorld`
+>            * `Item` -> `item`    
+>            * `HelloWorld` -> `helloWorld`
 
 #### ModelAttribute - addItemV4 (ModelAttribute 전체 생략)
 
@@ -1014,5 +1014,120 @@ public class BasicItemController {
 ```
 
 `@ModelAttribute` 자체도 생략 가능하다. 대상 객체는 모델에 자동 등록된다. 나머지 사항은 기존과 동일하다.
+
+### 7-9. 상품 수정
+
+##### BasicController - editForm() - 상품 수정 폼 컨트롤러
+
+```java
+public class BasicController {
+    @GetMapping("/{itemId}/edit")
+    public String editForm(@PathVariable Long itemId, Model model) {
+        Item item = itemRepository.findById(itemId);
+        model.addAttribute("item", item);
+        return "basic/editForm";
+    }
+}
+```
+
+수정에 필요한 정보를 조회하고, 수정용 폼 뷰를 호출한다.
+
+#### editForm.html - 상품 수정 폼 뷰
+
+* `src/main/resources/templates/basic/editForm.html`
+
+```html
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link th:href="@{/css/bootstrap.min.css}"
+          href="../css/bootstrap.min.css" rel="stylesheet">
+    <style>
+ .container {
+ max-width: 560px;
+ }
+    
+    
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="py-5 text-center">
+        <h2>상품 수정 폼</h2>
+    </div>
+    <form action="item.html" th:action method="post">
+        <div>
+            <label for="id">상품 ID</label>
+            <input type="text" id="id" name="id" class="form-control" value="1" th:value="${item.id}"
+                   readonly>
+        </div>
+        <div>
+            <label for="itemName">상품명</label>
+            <input type="text" id="itemName" name="itemName" class="form-control"
+                   value="상품A" th:value="${item.itemName}">
+        </div>
+        <div>
+            <label for="price">가격</label>
+            <input type="text" id="price" name="price" class="form-control"
+                   value="10000" th:value="${item.price}">
+        </div>
+        <div>
+            <label for="quantity">수량</label>
+            <input type="text" id="quantity" name="quantity" class="form-control"
+                   value="10" th:value="${item.quantity}">
+        </div>
+        <hr class="my-4">
+        <div class="row">
+            <div class="col">
+                <button class="w-100 btn btn-primary btn-lg" type="submit">저장
+                </button>
+            </div>
+            <div class="col">
+                <button class="w-100 btn btn-secondary btn-lg"
+                        th:onclick="|location.href='@{/basic/items/{itemId}(itemId=${item.id})}'|"
+                        onclick="location.href='item.html'" type="button">취소
+                </button>
+            </div>
+        </div>
+    </form>
+</div> <!-- /container -->
+</body>
+</html>
+```
+
+#### BasicItemController - edit()
+
+```java
+public class BasicItemController {
+    @PostMapping("/{itemId}/edit")
+    public String edit(@PathVariable Long itemId, @ModelAttribute Item item) {
+        itemRepository.update(itemId, item);
+        return "redirect:/basic/items/{itemId}";
+    }
+}
+```
+
+상품 수정은 상품 등록과 전체 프로세스가 유사하다.
+
+* GET `/items/{itemId}/edit`: 상품 수정 폼
+* POST `/items/{itemId}/edit`: 상품 수정 처리
+
+#### 리다이렉트
+
+상품 수정은 마지막에 뷰 템플릿을 호출하는 대신에 상품 상세 화면으로 이동하도록 리다이렉트를 호출한다.
+
+* 스프링은 `redirect:/...`으로 편리하게 리다이렉트를 지원한다.
+* `redirect:/basic/items/{itemId}`
+    * 컨트롤러에 매핑된 `@PathVariable`의 값은 `redirect`에도 사용할 수 있다.
+    * `redirect:/basic/items/{itemId}` -> `{itemId}`는 `@PathVariable Long itenId`의 값을 그대로 사용한다.
+
+> 참고  
+> 리다이렉트에 대한 자세한 내용은 모든 개발자를 위한 HTTP 웹 기본 지식 강의를 참고
+
+> 참고  
+> HTML Form 전송은 PUT, PATCH를 지원하지 않는다. GET, POST만 사용할 수 있다.    
+> PUT, PATCH는 HTTP API 전송시에 사용  
+> 스프링에서 HTTP POST로 Form 요청할 때 히든 필드를 통해서 PUT, PATCH 매핑을 사용하는 방법이 있지만, HTTP 요청상 POST 요청이다.
 
 ## Note
